@@ -10,6 +10,7 @@
     "monitor": "node src/monitoring/monitor.js",
     "dev": "nodemon src/index.js",
     "test:publisher": "node test/mqtt-publisher.js",
+    "test:formatter": "node test/test-formatter.js",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",

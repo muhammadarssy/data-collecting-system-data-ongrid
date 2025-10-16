@@ -70,5 +70,12 @@ module.exports = {
   logging: {
     level: process.env.LOG_LEVEL || 'info',
     filePath: process.env.LOG_FILE_PATH || './logs/app.log'
+  },
+
+  messageFormatting: {
+    // Parse comma-separated prefixes from env
+    keyPrefixes: process.env.MESSAGE_KEY_PREFIXES 
+      ? process.env.MESSAGE_KEY_PREFIXES.split(',').map(p => p.trim())
+      : ['INV_1_', 'INV_2_', 'INV_3_', 'INV_4_', 'CHINT_1_', 'CHINT_2_', 'CHINT_3_', 'CHINT_4_']
   }
 };

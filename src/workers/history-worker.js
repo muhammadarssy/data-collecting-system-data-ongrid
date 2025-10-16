@@ -3,6 +3,7 @@ const config = require('../config/config');
 const mongoDBConnection = require('../database/mongodb');
 const redisConnection = require('../database/redis');
 const logger = require('../utils/logger');
+const { removeKeyPrefixes, extractDeviceId } = require('../utils/message-formatter');
 
 class HistoryWorker {
   constructor(workerId = 1) {
@@ -116,17 +117,21 @@ class HistoryWorker {
         };
       }
 
-      // Prepare document for insertion
+      // Remove prefixes from payload
+      const cleanedPayload = removeKeyPrefixes(message.payload);
+      
+      // Extract deviceId from original payload (before prefix removal)
+      const deviceId = extractDeviceId(message.payload) || message.idGateway;
+
+      // Prepare document for insertion with new format
       const document = {
-        ...message.payload,
-        siteId: message.siteId,
-        gatewayId: message.idGateway,
+        topic: message.topic,
+        message: cleanedPayload,
         receivedAt: new Date(message.receivedAt),
         processedAt: new Date(),
-        _metadata: {
-          topic: message.topic,
-          queueTimestamp: message.timestamp
-        }
+        siteId: message.siteId,
+        deviceId: deviceId,
+        gatewayId: message.idGateway
       };
 
       acc[key].documents.push(document);

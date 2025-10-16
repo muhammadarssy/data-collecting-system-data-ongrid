@@ -3,6 +3,7 @@ const config = require('../config/config');
 const mongoDBConnection = require('../database/mongodb');
 const redisConnection = require('../database/redis');
 const logger = require('../utils/logger');
+const { removeKeyPrefixes, extractDeviceId } = require('../utils/message-formatter');
 
 class RealtimeWorker {
   constructor(workerId = 1) {
@@ -116,21 +117,29 @@ class RealtimeWorker {
         };
       }
 
-      // Prepare update operation
+      // Remove prefixes from payload
+      const cleanedPayload = removeKeyPrefixes(message.payload);
+      
+      // Extract deviceId from original payload (before prefix removal)
+      const deviceId = extractDeviceId(message.payload) || message.idGateway;
+
+      // Prepare update operation with new format
       const operation = {
         message,
         filter: {
           gatewayId: message.idGateway,
-          deviceId: message.payload.deviceId || message.idGateway
+          deviceId: deviceId
         },
         update: {
           $set: {
-            ...message.payload,
-            siteId: message.siteId,
-            gatewayId: message.idGateway,
+            topic: message.topic,
+            message: cleanedPayload,
             lastUpdate: new Date(),
             receivedAt: new Date(message.receivedAt),
-            processedAt: new Date()
+            processedAt: new Date(),
+            siteId: message.siteId,
+            deviceId: deviceId,
+            gatewayId: message.idGateway
           }
         }
       };
