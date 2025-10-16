@@ -8,6 +8,7 @@
     "worker:history": "node src/workers/history-worker.js",
     "worker:realtime": "node src/workers/realtime-worker.js",
     "monitor": "node src/monitoring/monitor.js",
+    "dashboard": "node src/dashboard/server.js",
     "dev": "nodemon src/index.js",
     "test:publisher": "node test/mqtt-publisher.js",
     "test:formatter": "node test/test-formatter.js",
@@ -30,11 +31,13 @@
   "license": "ISC",
   "description": "IoT Data Collection System with Queue Management",
   "dependencies": {
-    "mqtt": "^5.3.0",
+    "bottleneck": "^2.19.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^5.1.0",
     "ioredis": "^5.3.2",
     "mongodb": "^6.3.0",
-    "bottleneck": "^2.19.5",
-    "dotenv": "^16.3.1",
+    "mqtt": "^5.3.0",
     "winston": "^3.11.0"
   },
   "devDependencies": {

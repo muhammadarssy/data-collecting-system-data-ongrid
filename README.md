@@ -10,6 +10,8 @@ Sistem pengumpulan data IoT dengan Queue Management untuk mencegah MongoDB overl
 - **Batch Processing**: Insert/update data dalam batch untuk efisiensi
 - **Dead Letter Queue**: Automatic retry dan error handling
 - **System Monitoring**: Real-time monitoring queue length dan system health
+- **Health Dashboard**: Web-based monitoring dashboard dengan real-time updates
+- **Message Formatting**: Automatic prefix removal untuk clean data storage
 - **Graceful Shutdown**: Proper cleanup saat stop services
 
 ## 📋 Arsitektur
@@ -102,6 +104,22 @@ Ini akan menjalankan:
 - 4x History Workers
 - 2x Realtime Workers
 - 1x System Monitor
+- 1x Health Dashboard (http://localhost:3000)
+
+### Health Dashboard
+
+Access web-based monitoring dashboard:
+
+```
+http://localhost:3000
+```
+
+**Features:**
+- Real-time queue monitoring
+- MongoDB & Redis connection status
+- System metrics
+- Queue management (clear queue)
+- Auto-refresh every 5 seconds
 
 ### Start Individual Services
 
@@ -116,6 +134,10 @@ npm run worker:history
 npm run worker:realtime
 
 # Monitor only
+npm run monitor
+
+# Health Dashboard only
+npm run dashboard
 npm run monitor
 ```
 

@@ -27,6 +27,17 @@ npm run subscriber       # MQTT Subscriber
 npm run worker:history   # History Worker
 npm run worker:realtime  # Realtime Worker
 npm run monitor          # System Monitor
+npm run dashboard        # Health Dashboard
+```
+
+### Health Dashboard
+
+```powershell
+# Start dashboard
+npm run dashboard
+
+# Access via browser
+http://localhost:3000
 ```
 
 ### Docker Management

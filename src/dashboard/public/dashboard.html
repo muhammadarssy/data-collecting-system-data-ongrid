@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Data Collection - Health Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .last-update {
+            float: right;
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .status-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .status-error {
+            background: #ef4444;
+            color: white;
+        }
+
+        .status-disconnected {
+            background: #6b7280;
+            color: white;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #111827;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+        }
+
+        .metric-large {
+            font-size: 48px;
+            font-weight: 700;
+            color: #667eea;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .metric-label {
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .chart-container {
+            height: 200px;
+            margin-top: 20px;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            font-size: 14px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="last-update" id="lastUpdate">Last update: --:--:--</span>
+            <h1>🏥 IoT Data Collection - Health Monitor</h1>
+            <p>Real-time monitoring of system health and connections</p>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            Loading health data...
+        </div>
+
+        <div id="dashboard" style="display: none;">
+            <!-- Queue Status -->
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">📨 Realtime Queue</h2>
+                        <span class="status-badge" id="realtimeStatus">--</span>
+                    </div>
+                    <div class="metric-large" id="realtimeLength">0</div>
+                    <div class="metric-label">Messages in Queue</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="realtimeProgress" style="width: 0%"></div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Threshold</span>
+                        <span class="stat-value" id="realtimeThreshold">--</span>
+                    </div>
+                    <button class="btn btn-danger" onclick="clearQueue('queue:realtime')">Clear Queue</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">📦 History Queue</h2>
+                        <span class="status-badge" id="historyStatus">--</span>
+                    </div>
+                    <div class="metric-large" id="historyLength">0</div>
+                    <div class="metric-label">Messages in Queue</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="historyProgress" style="width: 0%"></div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Threshold</span>
+                        <span class="stat-value" id="historyThreshold">--</span>
+                    </div>
+                    <button class="btn btn-danger" onclick="clearQueue('queue:history')">Clear Queue</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">⚠️ Dead Letter Queue</h2>
+                        <span class="status-badge" id="dlqStatus">--</span>
+                    </div>
+                    <div class="metric-large" id="dlqLength">0</div>
+                    <div class="metric-label">Failed Messages</div>
+                    <button class="btn btn-danger" onclick="clearQueue('queue:dead_letter')">Clear DLQ</button>
+                </div>
+            </div>
+
+            <!-- MongoDB Status -->
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">🍃 MongoDB</h2>
+                        <span class="status-badge" id="mongoStatus">--</span>
+                    </div>
+                    <div id="mongoStats">
+                        <div class="stat-row">
+                            <span class="stat-label">Response Time</span>
+                            <span class="stat-value" id="mongoResponseTime">--</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Connections (Current/Available)</span>
+                            <span class="stat-value" id="mongoConnections">--</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Insert Operations</span>
+                            <span class="stat-value" id="mongoInserts">--</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Update Operations</span>
+                            <span class="stat-value" id="mongoUpdates">--</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Memory (Resident/Virtual)</span>
+                            <span class="stat-value" id="mongoMemory">--</span>
+                        </div>
+                    </div>
+                    <div id="mongoError" class="error-message" style="display: none;"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">⚡ Redis</h2>
+                        <span class="status-badge" id="redisStatus">--</span>
+                    </div>
+                    <div id="redisStats">
+                        <div class="stat-row">
+                            <span class="stat-label">Response Time</span>
+                            <span class="stat-value" id="redisResponseTime">--</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Connected Clients</span>
+                            <span class="stat-value" id="redisClients">--</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Memory Used</span>
+                            <span class="stat-value" id="redisMemory">--</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Ops/Sec</span>
+                            <span class="stat-value" id="redisOps">--</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Total Commands</span>
+                            <span class="stat-value" id="redisTotalCommands">--</span>
+                        </div>
+                    </div>
+                    <div id="redisError" class="error-message" style="display: none;"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">💻 System</h2>
+                        <span class="status-badge status-connected">RUNNING</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Uptime</span>
+                        <span class="stat-value" id="systemUptime">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Node Version</span>
+                        <span class="stat-value" id="nodeVersion">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Memory (Heap Used)</span>
+                        <span class="stat-value" id="systemMemory">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Platform</span>
+                        <span class="stat-value" id="systemPlatform">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>IoT Data Collection System - Health Monitor Dashboard</p>
+            <p style="margin-top: 5px; font-size: 12px;">Auto-refresh every 5 seconds</p>
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval;
+
+        async function fetchHealth() {
+            try {
+                const response = await fetch('/api/health');
+                const result = await response.json();
+
+                if (result.success) {
+                    updateDashboard(result.data);
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                } else {
+                    console.error('Failed to fetch health data:', result.error);
+                }
+            } catch (error) {
+                console.error('Error fetching health data:', error);
+            }
+        }
+
+        function updateDashboard(data) {
+            // Update timestamp
+            const lastUpdate = new Date(data.lastUpdate);
+            document.getElementById('lastUpdate').textContent = `Last update: ${lastUpdate.toLocaleTimeString()}`;
+
+            // Queue stats
+            updateQueue('realtime', data.queues.realtime);
+            updateQueue('history', data.queues.history);
+            updateDLQ(data.queues.deadLetter);
+
+            // MongoDB stats
+            updateMongoDB(data.mongodb);
+
+            // Redis stats
+            updateRedis(data.redis);
+
+            // System stats
+            updateSystem(data.system);
+        }
+
+        function updateQueue(type, queue) {
+            const prefix = type;
+            document.getElementById(`${prefix}Length`).textContent = queue.length.toLocaleString();
+            document.getElementById(`${prefix}Threshold`).textContent = queue.threshold.toLocaleString();
+            
+            const status = document.getElementById(`${prefix}Status`);
+            status.textContent = queue.status;
+            status.className = 'status-badge ' + (queue.status === 'OK' ? 'status-connected' : 'status-warning');
+
+            const progress = document.getElementById(`${prefix}Progress`);
+            progress.style.width = Math.min(queue.percentage, 100) + '%';
+            progress.className = 'progress-fill ' + (queue.percentage > 80 ? 'warning' : '');
+        }
+
+        function updateDLQ(dlq) {
+            document.getElementById('dlqLength').textContent = dlq.length.toLocaleString();
+            
+            const status = document.getElementById('dlqStatus');
+            status.textContent = dlq.status;
+            status.className = 'status-badge ' + (dlq.status === 'OK' ? 'status-connected' : 'status-warning');
+        }
+
+        function updateMongoDB(mongo) {
+            const status = document.getElementById('mongoStatus');
+            status.textContent = mongo.status;
+            
+            if (mongo.status === 'CONNECTED') {
+                status.className = 'status-badge status-connected';
+                document.getElementById('mongoStats').style.display = 'block';
+                document.getElementById('mongoError').style.display = 'none';
+
+                document.getElementById('mongoResponseTime').textContent = mongo.responseTime + 'ms';
+                document.getElementById('mongoConnections').textContent = 
+                    `${mongo.connections.current} / ${mongo.connections.available}`;
+                document.getElementById('mongoInserts').textContent = 
+                    mongo.opcounters.insert.toLocaleString();
+                document.getElementById('mongoUpdates').textContent = 
+                    mongo.opcounters.update.toLocaleString();
+                document.getElementById('mongoMemory').textContent = 
+                    `${mongo.memory.resident}MB / ${mongo.memory.virtual}MB`;
+            } else {
+                status.className = 'status-badge status-' + mongo.status.toLowerCase();
+                document.getElementById('mongoStats').style.display = 'none';
+                
+                if (mongo.error) {
+                    const errorEl = document.getElementById('mongoError');
+                    errorEl.textContent = 'Error: ' + mongo.error;
+                    errorEl.style.display = 'block';
+                }
+            }
+        }
+
+        function updateRedis(redis) {
+            const status = document.getElementById('redisStatus');
+            status.textContent = redis.status;
+            
+            if (redis.status === 'CONNECTED') {
+                status.className = 'status-badge status-connected';
+                document.getElementById('redisStats').style.display = 'block';
+                document.getElementById('redisError').style.display = 'none';
+
+                document.getElementById('redisResponseTime').textContent = redis.responseTime + 'ms';
+                document.getElementById('redisClients').textContent = redis.clients.connected;
+                document.getElementById('redisMemory').textContent = redis.memory.used;
+                document.getElementById('redisOps').textContent = redis.stats.opsPerSec.toLocaleString();
+                document.getElementById('redisTotalCommands').textContent = 
+                    redis.stats.totalCommands.toLocaleString();
+            } else {
+                status.className = 'status-badge status-' + redis.status.toLowerCase();
+                document.getElementById('redisStats').style.display = 'none';
+                
+                if (redis.error) {
+                    const errorEl = document.getElementById('redisError');
+                    errorEl.textContent = 'Error: ' + redis.error;
+                    errorEl.style.display = 'block';
+                }
+            }
+        }
+
+        function updateSystem(system) {
+            document.getElementById('systemUptime').textContent = system.uptimeFormatted;
+            document.getElementById('nodeVersion').textContent = system.nodeVersion;
+            document.getElementById('systemMemory').textContent = 
+                (system.memory.heapUsed / 1024 / 1024).toFixed(2) + ' MB';
+            document.getElementById('systemPlatform').textContent = system.platform;
+        }
+
+        async function clearQueue(queueName) {
+            if (!confirm(`Are you sure you want to clear ${queueName}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/queue/clear/${queueName}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`Queue ${queueName} cleared successfully!`);
+                    fetchHealth(); // Refresh data
+                } else {
+                    alert('Failed to clear queue: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error clearing queue: ' + error.message);
+            }
+        }
+
+        // Initial load
+        fetchHealth();
+
+        // Auto-refresh every 5 seconds
+        refreshInterval = setInterval(fetchHealth, 5000);
+    </script>
+</body>
+</html>

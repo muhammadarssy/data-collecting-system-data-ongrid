@@ -82,6 +82,9 @@ async function main() {
   // Start System Monitor
   manager.spawn('System Monitor', './src/monitoring/monitor.js');
 
+  // Start Health Dashboard
+  manager.spawn('Health Dashboard', './src/dashboard/server.js');
+
   logger.info('=================================');
   logger.info('All services started successfully');
   logger.info('=================================');
