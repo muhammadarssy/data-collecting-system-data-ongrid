@@ -2,6 +2,7 @@ const mqtt = require('mqtt');
 const config = require('./config/config');
 const redisConnection = require('./database/redis');
 const logger = require('./utils/logger');
+const { pluralizeCollectionName } = require('./utils/message-formatter');
 
 class MQTTSubscriber {
   constructor() {
@@ -101,13 +102,16 @@ class MQTTSubscriber {
         return;
       }
 
-      const [, siteId, dataType, database, collection, idGateway] = topicParts;
+      const [, siteId, dataType, database, rawCollection, idGateway] = topicParts;
 
       // Validate data type
       if (dataType !== 'realtime' && dataType !== 'history') {
         logger.warn('Invalid data type in topic:', { topic, dataType });
         return;
       }
+
+      // Pluralize collection name
+      const collection = pluralizeCollectionName(rawCollection);
 
       // Parse message payload
       let payload;

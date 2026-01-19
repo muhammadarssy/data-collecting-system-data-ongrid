@@ -12,6 +12,7 @@
     "dev": "nodemon src/index.js",
     "test:publisher": "node test/mqtt-publisher.js",
     "test:formatter": "node test/test-formatter.js",
+    "test:pluralize": "node test/test-pluralize.js",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",

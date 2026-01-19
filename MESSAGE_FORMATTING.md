@@ -2,7 +2,9 @@
 
 ## 📋 Overview
 
-Sistem akan otomatis **menghapus prefix** dari key message sebelum disimpan ke MongoDB untuk membuat data lebih clean dan konsisten.
+Sistem akan otomatis:
+1. **Menghapus prefix** dari key message sebelum disimpan ke MongoDB untuk membuat data lebih clean dan konsisten
+2. **Pluralisasi collection name** secara otomatis sesuai aturan
 
 ## ⚙️ Configuration
 
@@ -107,6 +109,39 @@ System akan otomatis extract `deviceId` dari prefix:
 
 ## 🧪 Testing
 
+### Test Collection Name Pluralization
+
+```powershell
+npm run test:pluralize
+```
+
+Output:
+```
+=================================
+Collection Name Pluralization Test
+=================================
+
+Testing pluralization rules:
+- If ends with digit → keep as is
+- If does not end with digit → add 's'
+
+✓ harvest         → harvests        (Expected: harvests)
+✓ ehub            → ehubs           (Expected: ehubs)
+✓ ehub1           → ehub1           (Expected: ehub1)
+✓ ehub2           → ehub2           (Expected: ehub2)
+✓ device          → devices         (Expected: devices)
+✓ sensor          → sensors         (Expected: sensors)
+✓ gateway1        → gateway1        (Expected: gateway1)
+✓ meter           → meters          (Expected: meters)
+✓ inverter3       → inverter3       (Expected: inverter3)
+✓ datalog         → datalogs        (Expected: datalogs)
+
+=================================
+Results: 10 passed, 0 failed
+=================================
+✓ All tests passed!
+```
+
 ### Test Formatter Function
 
 ```powershell
@@ -149,11 +184,51 @@ Publisher akan random kirim data dengan berbagai prefix (INV_1_, INV_2_, CHINT_1
 
 ## 🔧 Implementation Details
 
+### Collection Name Pluralization
+
+**Rules:**
+- Collection name yang **diakhiri angka** → tetap apa adanya
+  - `ehub1` → `ehub1`
+  - `gateway2` → `gateway2`
+  - `sensor3` → `sensor3`
+
+- Collection name yang **tidak diakhiri angka** → tambah 's'
+  - `harvest` → `harvests`
+  - `ehub` → `ehubs`
+  - `device` → `devices`
+  - `sensor` → `sensors`
+
+**Example MQTT Topic Transformation:**
+```
+Original Topic:
+data/site001/realtime/energy_db/harvest/gw001
+
+Processed Collection Name:
+harvests (harvest + 's')
+
+Original Topic:
+data/site001/realtime/energy_db/ehub1/gw001
+
+Processed Collection Name:
+ehub1 (unchanged, ends with digit)
+```
+
+**Implementation:**
+- Function: `pluralizeCollectionName()` in `src/utils/message-formatter.js`
+- Used in: `src/mqtt-subscriber.js` (when parsing topic)
+- Automatic: Collection name will be pluralized before storing to MongoDB
+
 ### File Changes
 
-1. **`src/utils/message-formatter.js`** (NEW)
+1. **`src/utils/message-formatter.js`** (UPDATED)
    - `removeKeyPrefixes()` - Remove prefix dari object keys
    - `extractDeviceId()` - Extract device ID dari prefix
+   - `pluralizeCollectionName()` - **NEW** - Pluralize collection name
+
+2. **`src/mqtt-subscriber.js`** (UPDATED)
+   - Import `pluralizeCollectionName()`
+   - Apply pluralization when parsing topic
+   - Pass pluralized collection name to queue
 
 2. **`src/config/config.js`**
    - Added `messageFormatting.keyPrefixes` configuration
@@ -173,9 +248,47 @@ Publisher akan random kirim data dengan berbagai prefix (INV_1_, INV_2_, CHINT_1
 5. **`.env`**
    - Added `MESSAGE_KEY_PREFIXES` configuration
 
+6. **`test/test-pluralize.js`** (NEW)
+   - Test script untuk collection name pluralization
+
 ## 📝 Examples
 
-### Example 1: INV Device
+### Example 1: Collection Pluralization with INV Device
+
+**MQTT Topic:**
+```
+data/site001/realtime/energy_db/harvest/gw001
+```
+
+**Processing:**
+- Original collection: `harvest`
+- Pluralized collection: `harvests` (tidak diakhiri angka → tambah 's')
+
+**MQTT Message:**
+```json
+{
+  "INV_1_voltage": 220,
+  "INV_1_current": 10,
+  "INV_1_power": 2200
+}
+```
+
+**MongoDB Document (stored in `harvests` collection):**
+```json
+{
+  "topic": "data/site001/realtime/energy_db/harvest/gw001",
+  "message": {
+    "voltage": 220,
+    "current": 10,
+    "power": 2200
+  },
+  "deviceId": "INV_1",
+  "siteId": "site001",
+  "gatewayId": "gw001"
+}
+```
+
+### Example 2: Collection with Digit (No Pluralization)
 
 **MQTT Message:**
 ```json
@@ -201,7 +314,16 @@ Publisher akan random kirim data dengan berbagai prefix (INV_1_, INV_2_, CHINT_1
 }
 ```
 
-### Example 2: CHINT Device
+### Example 2: Collection with Digit (No Pluralization)
+
+**MQTT Topic:**
+```
+data/site001/realtime/energy_db/ehub1/gw002
+```
+
+**Processing:**
+- Original collection: `ehub1`
+- Pluralized collection: `ehub1` (diakhiri angka → tetap)
 
 **MQTT Message:**
 ```json
@@ -213,10 +335,10 @@ Publisher akan random kirim data dengan berbagai prefix (INV_1_, INV_2_, CHINT_1
 }
 ```
 
-**MongoDB Document:**
+**MongoDB Document (stored in `ehub1` collection):**
 ```json
 {
-  "topic": "data/site001/realtime/energy_db/realtime_data/gw001",
+  "topic": "data/site001/realtime/energy_db/ehub1/gw002",
   "message": {
     "voltage_L1": 220,
     "voltage_L2": 221,
@@ -225,9 +347,24 @@ Publisher akan random kirim data dengan berbagai prefix (INV_1_, INV_2_, CHINT_1
   },
   "deviceId": "CHINT_2",
   "siteId": "site001",
-  "gatewayId": "gw001"
+  "gatewayId": "gw002"
 }
 ```
+
+### Example 3: Multiple Collection Names
+
+| MQTT Topic Collection | Stored in MongoDB Collection |
+|----------------------|------------------------------|
+| `harvest` | `harvests` |
+| `ehub` | `ehubs` |
+| `ehub1` | `ehub1` |
+| `ehub2` | `ehub2` |
+| `device` | `devices` |
+| `sensor` | `sensors` |
+| `gateway1` | `gateway1` |
+| `meter` | `meters` |
+| `inverter3` | `inverter3` |
+| `datalog` | `datalogs` |
 
 ## 🎯 Benefits
 
@@ -236,6 +373,8 @@ Publisher akan random kirim data dengan berbagai prefix (INV_1_, INV_2_, CHINT_1
 ✅ **Easy Querying**: Query by `deviceId` instead of prefix keys
 ✅ **Flexible**: Easy to add/remove prefixes via .env
 ✅ **Automatic**: No code changes needed for new devices
+✅ **Smart Collection Names**: Automatic pluralization based on naming convention
+✅ **Predictable**: Clear rules for collection naming (digit vs non-digit)
 
 ## 🔍 Querying MongoDB
 
@@ -306,10 +445,13 @@ db.realtime_data.find().forEach(doc => {
 2. **Prefix Order**: First match wins - jika key match multiple prefixes, yang pertama akan digunakan
 3. **Nested Objects**: Formatter juga handle nested objects
 4. **Case Sensitive**: Prefix matching is case-sensitive
+5. **Collection Pluralization**: Otomatis diterapkan pada semua topic yang diterima
+6. **Topic vs Collection**: Collection name di topic tetap singular/original, yang di-pluralize hanya saat store ke MongoDB
 
 ## 📞 Support
 
 Jika ada pertanyaan tentang message formatting, refer to:
 - `src/utils/message-formatter.js` - Implementation
-- `test/test-formatter.js` - Test examples
+- `test/test-formatter.js` - Test examples for prefix removal
+- `test/test-pluralize.js` - Test examples for collection pluralization
 - This documentation
