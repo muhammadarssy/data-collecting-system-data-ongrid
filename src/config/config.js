@@ -48,7 +48,8 @@ module.exports = {
     realtimeInstances: parseInt(process.env.WORKER_REALTIME_INSTANCES) || 2,
     batchSizeHistory: parseInt(process.env.BATCH_SIZE_HISTORY) || 100,
     batchSizeRealtime: parseInt(process.env.BATCH_SIZE_REALTIME) || 50,
-    batchIntervalMs: parseInt(process.env.BATCH_INTERVAL_MS) || 5000
+    batchIntervalMs: parseInt(process.env.BATCH_INTERVAL_MS) || 5000,
+    dlqCheckIntervalMs: parseInt(process.env.DLQ_CHECK_INTERVAL_MS) || 30000
   },
 
   rateLimit: {

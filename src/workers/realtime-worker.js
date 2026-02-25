@@ -99,9 +99,6 @@ class RealtimeWorker {
     } catch (error) {
       logger.error(`Realtime Worker #${this.workerId} batch processing error:`, error);
       this.errorCount += batch.length;
-      
-      // Send failed messages to dead letter queue
-      await this.sendToDeadLetterQueue(batch, error.message);
     }
   }
 
@@ -187,28 +184,6 @@ class RealtimeWorker {
         error: error.message
       });
       throw error;
-    }
-  }
-
-  async sendToDeadLetterQueue(messages, errorMessage) {
-    try {
-      for (const message of messages) {
-        const dlqData = {
-          ...message,
-          error: errorMessage,
-          failedAt: new Date().toISOString(),
-          worker: `realtime-worker-${this.workerId}`
-        };
-        
-        await redisConnection.pushToQueue(
-          config.queue.deadLetterName,
-          dlqData
-        );
-      }
-      
-      logger.warn(`Realtime Worker #${this.workerId} sent ${messages.length} messages to DLQ`);
-    } catch (error) {
-      logger.error(`Realtime Worker #${this.workerId} failed to send to DLQ:`, error);
     }
   }
 

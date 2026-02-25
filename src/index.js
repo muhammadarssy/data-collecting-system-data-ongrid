@@ -79,6 +79,9 @@ async function main() {
     );
   }
 
+  // Start DLQ History Worker
+  manager.spawn('DLQ History Worker', './src/workers/dlq-history-worker.js');
+
   // Start System Monitor
   manager.spawn('System Monitor', './src/monitoring/monitor.js');
 
